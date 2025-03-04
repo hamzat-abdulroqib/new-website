@@ -7,11 +7,17 @@ blogcontainer.classList.add("row");
 
 async function fetchRandomNews() {
   try {
-    // const apiurl = `https://newsapi.org/v2/top-headlines?country=us&pageSize=20&apiKey=${apikey}`;
     const response = await fetch(
       `https://newsapi.org/v2/top-headlines?country=us&pageSize=20&apiKey=${apikey}`
     );
     const data = await response.json();
+
+    console.log("Fetched Data:", data);
+
+    if (!data.articles || !Array.isArray(data.articles)) {
+      throw new Error("Invalid API response format");
+    }
+
     return data.articles;
   } catch (error) {
     console.error("Error fetching news:", error);
@@ -19,26 +25,22 @@ async function fetchRandomNews() {
   }
 }
 
-searchbtn.addEventListener("click", async () => {
-  const input = search.value.trim();
-
-  if (input !== "") {
-    try {
-      const articles = await fetchNews(input);
-      displayBLogs(articles);
-    } catch (error) {
-      console.error("Error fetching news:", error);
-    }
-  }
-});
-
+// Fetch news based on search input
 async function fetchNews(input) {
   try {
-    // const apiurl = `https://newsapi.org/v2/everything?q=${input}&pageSize=18&apiKey=${apikey}`;
     const response = await fetch(
-      `https://newsapi.org/v2/everything?q=${input}&pageSize=18&apiKey=${apikey}`
+      `https://newsapi.org/v2/everything?q=${encodeURIComponent(
+        input
+      )}&pageSize=18&apiKey=${apikey}`
     );
     const data = await response.json();
+
+    console.log("Search Response:", data);
+
+    if (!data.articles || !Array.isArray(data.articles)) {
+      throw new Error("Invalid API response format");
+    }
+
     return data.articles;
   } catch (error) {
     console.error("Error fetching news:", error);
@@ -46,8 +48,15 @@ async function fetchNews(input) {
   }
 }
 
+// Display news articles
 function displayBLogs(articles) {
   blogcontainer.innerHTML = "";
+
+  if (!articles.length) {
+    blogcontainer.innerHTML = `<p class="text-center">No news found.</p>`;
+    return;
+  }
+
   articles.forEach((article) => {
     const col = document.createElement("div");
     col.classList.add("col-md-4", "mb-4");
@@ -55,6 +64,7 @@ function displayBLogs(articles) {
     const blog = document.createElement("div");
     blog.classList.add("card", "h-100");
 
+    // Handle missing images
     const img = document.createElement("img");
     img.classList.add("card-img-top");
     img.src = article.urlToImage;
@@ -69,7 +79,8 @@ function displayBLogs(articles) {
 
     const description = document.createElement("p");
     description.classList.add("card-text");
-    description.textContent = article.description;
+    description.textContent =
+      article.description || "No description available.";
 
     cardBody.appendChild(title);
     cardBody.appendChild(description);
@@ -77,17 +88,33 @@ function displayBLogs(articles) {
     blog.appendChild(cardBody);
     col.appendChild(blog);
     blogcontainer.appendChild(col);
+
     blog.addEventListener("click", () => {
       window.open(article.url, "_blank");
     });
   });
 }
 
+
 (async () => {
   try {
     const articles = await fetchRandomNews();
     displayBLogs(articles);
   } catch (error) {
-    console.error("Error fetching news:", error);
+    console.error("Error loading initial news:", error);
   }
 })();
+
+// Search functionality
+searchbtn.addEventListener("click", async () => {
+  const input = search.value.trim();
+
+  if (input !== "") {
+    try {
+      const articles = await fetchNews(input);
+      displayBLogs(articles);
+    } catch (error) {
+      console.error("Error fetching news:", error);
+    }
+  }
+});
